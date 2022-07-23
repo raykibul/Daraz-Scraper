@@ -3,9 +3,19 @@ import requests
 import aiohttp
 from bs4 import BeautifulSoup as soup
 import json
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium import webdriver
+from webdriver_manager.chrome import ChromeDriverManager
+
 
 daraz_main_link = "https://www.daraz.com.bd"
 
+
+
+def get_driver():
+    driver = webdriver.Chrome(ChromeDriverManager().install())
+    return driver
 
 def parse_url_synchonousely(url):
     req = requests.get(url)
@@ -37,6 +47,33 @@ async def parse_qna_product(product_link):
                     print(f'Exception: No Qna found ')
                     continue
     return qna_list
+
+async def parse_qna_selenium(product_link):
+    qna_list = []
+    driver = get_driver()
+    test =    await driver.get(product_link)
+    driver.implicitly_wait(15)
+    counter = 0
+    next_btn = driver.find_elements(By.CLASS_NAME, "next")[-1]
+    if next_btn is not None:
+        while True:
+            qna_items = driver.find_elements(By.CLASS_NAME, "qna-list")
+            for item in qna_items:
+                try:
+                    question = item.find_elements(By.CLASS_NAME, 'qna-content')
+                    for q in question:
+                        print(q.get_attribute("innerHTML"))
+                    counter = counter + len(question)
+                    print(f'total: {counter} qna parsed')
+                except  Exception as e:
+                    print(f'Exception : {e}')
+                    raise Exception
+            next_btn.click()
+            driver.implicitly_wait(7)
+
+    return qna_list
+
+
 
 
 def parse_categorie_links():
